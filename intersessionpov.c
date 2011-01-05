@@ -8,6 +8,7 @@
 #include <timers.h>
 
 #pragma idata bigdata
+// Each character is described by 3 columns of 5 LEDs
 //int alphabet[27][3] = {
 int alphabet_3x5[28][3] = {
 	{ 0b00011110, 0b00101000, 0b00011110 }, //A
