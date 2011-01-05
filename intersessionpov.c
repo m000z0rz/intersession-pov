@@ -36,9 +36,14 @@ int alphabet_3x5[28][3] = {
 	{ 0b00111100, 0b00001100, 0b00111100 }, //W
 	{ 0b00110110, 0b00001000, 0b00110110 }, //X
 	{ 0b00110000, 0b00001000, 0b00111110 }, //Y
-	{ 0b00100110, 0b00101010, 0b00110010 }, //Z
-	{ 0b00000000, 0b00000000, 0b00000000 }, //<space>
-	{ 0b00000000, 0b00111010, 0b00000000 } //!
+        { 0b00100110, 0b00101010, 0b00110010 } //Z
+
+        // Current implementation uses ASCII math to determine
+        // lookup table index. Space and ! are not sequential
+        // and will not be acceptable.  --sturnfie
+        // TODO: Find better lookup solution
+        //{ 0b00000000, 0b00000000, 0b00000000 }, //<space>
+        //{ 0b00000000, 0b00111010, 0b00000000 } //!
 };
 
 
