@@ -76,7 +76,7 @@ int displayLength=0; //number of columns to display
 void
 tmr0interrupt (void) {
 	/* clear the timer interrupt flag */
-	PIR1bits.TMR0IF = 0;
+        INTCONbits.TMR0IF = 0;
 	
 	//update column
 	LATB=~readEEPROM(curAddress);
