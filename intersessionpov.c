@@ -1,6 +1,3 @@
-//linear-POV-zigzag.c for IMSAInterssion 2011
-
-
 #pragma config FOSC = INTIO67
 #pragma config WDTEN = OFF, LVP = OFF
 #include "p18f46K20.h"
