@@ -2,12 +2,13 @@
 #pragma config WDTEN = OFF, LVP = OFF
 #include "p18f46K20.h"
 #include "intersessionpov.h"
+#include <delays.h>
 #include <timers.h>
 
 #pragma idata bigdata
 // Each character is described by 3 columns of 5 LEDs
 //int alphabet[27][3] = {
-int alphabet_3x5[28][3] = {
+char alphabet_3x5[28][3] = {
 	{ 0b00011110, 0b00101000, 0b00011110 }, //A
 	{ 0b00111110, 0b00101010, 0b00010100 }, //B
 	{ 0b00011100, 0b00100010, 0b00100010 }, //C
@@ -33,7 +34,8 @@ int alphabet_3x5[28][3] = {
 	{ 0b00111100, 0b00001100, 0b00111100 }, //W
 	{ 0b00110110, 0b00001000, 0b00110110 }, //X
 	{ 0b00110000, 0b00001000, 0b00111110 }, //Y
-        { 0b00100110, 0b00101010, 0b00110010 } //Z
+    { 0b00100110, 0b00101010, 0b00110010 }, //Z
+	{ 0b00000000, 0b00000000, 0b00000000 } //unknown character (currently space)
 
         // Current implementation uses ASCII math to determine
         // lookup table index. Space and ! are not sequential
@@ -41,8 +43,12 @@ int alphabet_3x5[28][3] = {
         // TODO: Find better lookup solution
         //{ 0b00000000, 0b00000000, 0b00000000 }, //<space>
         //{ 0b00000000, 0b00111010, 0b00000000 } //!
-};
 
+		// Modified lookup function to check to check input to be lowercase ascii
+		// If input is not lowercase ascii (97-122), will display character in
+		//   font table index 26 (the one after z.  currently a space) --bbaker
+};
+#pragma idata
 
 
 void tmr0interrupt(void);
@@ -72,17 +78,34 @@ volatile enum { DIR_LEFT = 0, DIR_RIGHT } direction;
 int curAddress=0;
 int columnDelay=25;
 int displayLength=0; //number of columns to display
+int reverseDirection=1; // repeat pattern in verse when we hit the end, or start at beginning? 1 for reverse
+int direction=0; //0 is forward through memory
 
 
 #pragma interrupt tmr0interrupt
-void
-tmr0interrupt (void) {
+
+void tmr0interrupt (void) {
 	/* clear the timer interrupt flag */
-        INTCONbits.TMR0IF = 0;
-	
+    INTCONbits.TMR0IF = 0;
+
+	//LATB=0b00001111;
 	//update column
 	LATB=~readEEPROM(curAddress);
 	
+	//check boundary conditions - start over, or play pattern backwards
+	if((curAddress==0)||(curAddress==displayLength)) {
+		if(reverseDirection) {
+			if(direction==0) {
+				curAddress=displayLength; //curAddress--;
+			} else {
+				curAddress=0; //curAddress++;
+			}
+			direction=~direction;
+		} else {
+			curAddress=0;
+		}
+	}
+
 	//reset timer
 	resetColumnTimer();
 }
@@ -90,34 +113,70 @@ tmr0interrupt (void) {
 
 
 void main (void) {
+	int readVal;
+	char displayer[] = "hiz";
 	TRISB = 0;
 	LATB = 0xFF;
 
+	//LATB = 0x00;
+
 	//setup
-	displayAddString("Hello");
+	//displayAddString("hello");
+	displayAddString(displayer);
 	columnDelay=25; //can also adjust TS0 prescaler
+
+	//INTCONbits.GIEH = 1;	//enable interrupts
 
 	OpenTimer0(TIMER_INT_ON &
 				T0_8BIT & //T0_16BIT
 				T0_SOURCE_INT &
-				T0_PS_1_1); //T0_PS_1_2,4,16,...256
+				T0_PS_1_2); //T0_PS_1_2,4,16,...256 --use 1:256 prescaler bbaker
 
 	resetColumnTimer();
 
 	curAddress=0;
+
+	while (1) {
+		//readVal=readEEPROM(curAddress);
+		LATB=~readEEPROM(curAddress);
+		//LATB=~readVal);
+		Delay10KTCYx(20);
+		LATB=0b10101010;
+		Delay10KTCYx(20);
+		//if(curAddress==displayLength) break;
+	}
+	
+	//LATB=0b10101010;
 	//loop
 	while (1) {
-		
+		// this is the song that never ends,
+		// yes it goes on and on my friends
+		// some people
+		// staaaaaarted singin' it not knowin' what it was
+		// and they'll continue singin it forever just because
 	}
 }
 
-void resetColumnTimer() {
+void resetColumnTimer(void) {
 	WriteTimer0(255-columnDelay);
 }
 
 void displayAddString(char theString[]) {
-	char* curChar = theString;
+	char* curChar;
+	curChar = theString;
+
+	LATB=0b00110011;
+	Delay10KTCYx(20);
+	LATB=0b11001100;
+	Delay10KTCYx(20);
+	
 	while(*curChar != '\0'){
+		/*
+		LATB=0b00110011;
+		Delay10KTCYx(20);
+		LATB=0b11001100;
+		Delay10KTCYx(20);
+		*/
 	    displayAddChar(*curChar);
 	    curChar++;
 	}
@@ -132,10 +191,31 @@ void displayAddString(char theString[]) {
 }
 
 void displayAddChar(char theChar) {
-	int alphIdx=theChar-97;
-	writeEEPROM(curAddress, alphabet_3x5[alphIdx][0]);
-	writeEEPROM(curAddress, alphabet_3x5[alphIdx][1]);
-	writeEEPROM(curAddress, alphabet_3x5[alphIdx][2]);
+	char alphIdx;
+	int value;
+	/*
+	int test1;
+	int test2;
+	test1 = (105 > 97);
+	test2 = (theChar > 'a');
+	*/
+	if ((theChar >= 'a') && (theChar <= 'z')) {
+		alphIdx=theChar-97;
+	} else {
+		alphIdx=26; //blank - a space
+	}
+	//alphIdx=0;
+	/*
+	LATB=~alphabet_3x5[alphIdx][0];
+	Delay10KTCYx(20);
+	LATB=~alphabet_3x5[alphIdx][1];
+	Delay10KTCYx(20);
+	LATB=~alphabet_3x5[alphIdx][2];
+	Delay10KTCYx(20);
+	*/
+	writeEEPROM(curAddress, (int) alphabet_3x5[alphIdx][0]);
+	writeEEPROM(curAddress, (int) alphabet_3x5[alphIdx][1]);
+	writeEEPROM(curAddress, (int) alphabet_3x5[alphIdx][2]);
 	writeEEPROM(curAddress, 0b00000000); //space after letter
 	displayLength=displayLength+4;
 }
@@ -182,27 +262,40 @@ void main_old (void) {
 	}
 }
 
-int readEEPROMin(int address) {
+int readEEPROM(int address) {
 	// *** enable/disable interrupts
+	if(direction==0) curAddress=address++; else curAddress=address--;
 	EECON1bits.EEPGD = 0;  /* READ step #1 */
+	EECON1bits.CFGS = 0; //added
 	EEADR = address;             /* READ step #2 */
 	EECON1bits.RD = 1;     /* READ step #3 */
-	curAddress=address++;
 	return EEDATA;    /* READ step #4 */
 }
 
 void writeEEPROM(int address, int value) {
 	// *** enable/disable interrupts	
 	EECON1bits.EEPGD = 0;  /* WRITE step #1 */
+	EECON1bits.CFGS = 0; //added
 	EECON1bits.WREN = 1;   /* WRITE step #2 */
 	EEADR = address;             /* WRITE step #3 */
+	EEADRH = 0x00;	//added
 	EEDATA = value;    /* WRITE step #4 */
+	disableInterrupts();
 	EECON2 = 0x55;         /* WRITE step #5 */
 	EECON2 = 0xaa;         /* WRITE step #6 */
 	EECON1bits.WR = 1;     /* WRITE step #7 */
+	enableInterrupts();
 	while (!PIR2bits.EEIF) /* WRITE step #8 */
 	  ;
 	PIR2bits.EEIF = 0;     /* WRITE step #9 */
 
 	curAddress=address++;
+}
+
+void disableInterrupts(void) {
+	INTCONbits.GIE=0;
+}
+
+void enableInterrupts(void) {
+	//INTCONbits.GIE=1;
 }

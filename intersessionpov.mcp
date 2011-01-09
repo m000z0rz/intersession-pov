@@ -1,7 +1,6 @@
 [HEADER]
 magic_cookie={66E99B07-E706-4689-9E80-9B2582898A13}
 file_version=1.0
-device=PIC18F46K20
 [PATH_INFO]
 BuildDirPolicy=BuildDirIsProjectDir
 dir_src=
@@ -9,7 +8,7 @@ dir_bin=
 dir_tmp=
 dir_sin=
 dir_inc=
-dir_lib=C:\Program Files (x86)\Microchip\mplabc18\v3.37\lib
+dir_lib=C:\Program Files\Microchip\mplabc18\v3.37\lib
 dir_lkr=
 [CAT_FILTERS]
 filter_src=*.asm;*.c

@@ -2,7 +2,11 @@
 #define INTERSESSIONPOV_H
 void displayAddString(char theString[]);
 void displayAddChar(char theChar);
+void resetColumnTimer(void);
 
-int readEEPROMin(int address);
+int readEEPROM(int address);
 void writeEEPROM(int address, int value);
+
+void disableInterrupts(void);
+void enableInterrupts(void);
 #endif
