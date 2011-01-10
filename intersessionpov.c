@@ -8,7 +8,7 @@
 #pragma idata bigdata
 // Each character is described by 3 columns of 5 LEDs
 //int alphabet[27][3] = {
-char alphabet_3x5[28][3] = {
+unsigned char alphabet_3x5[28][3] = {
 	{ 0b00011110, 0b00101000, 0b00011110 }, //A
 	{ 0b00111110, 0b00101010, 0b00010100 }, //B
 	{ 0b00011100, 0b00100010, 0b00100010 }, //C
@@ -68,7 +68,7 @@ int count = 0;
 volatile enum { DIR_LEFT = 0, DIR_RIGHT } direction;
 */
 
-int curAddress=0;
+unsigned char curAddress=0;
 int columnDelay=25;
 int displayLength=0;	//number of columns to display
 int reverseDirection=1; // repeat pattern in verse when we hit the end, or start at beginning? 1 for reverse
@@ -107,7 +107,7 @@ void tmr0interrupt (void) {
 
 void main (void) {
 	int readVal;
-	char displayer[] = "hiz";
+	char displayString[] = "hiz";
 
 	TRISB = 0;
 	LATB = 0xFF;
@@ -141,9 +141,10 @@ void main (void) {
 	//}
 
 
-
+	disableInterrupts();
 	//setup
-	displayAddString(displayer);
+	blinken();
+	displayAddString(displayString);
 	blinken();
 	
 	columnDelay=25; //can also adjust TS0 prescaler
@@ -159,11 +160,13 @@ void main (void) {
 
 	curAddress=0;
 
+	blinken();
 	while (1) {
-		blinken();
+		//blinken();
 		//readVal=readEEPROM(curAddress);
 		LATB=~readEEPROM(curAddress);
-		blinken();
+		curAddress++;
+		//blinken();
 		//LATB=~readVal;
 		Delay10KTCYx(20);
 		LATB=0b10101010;
@@ -214,10 +217,15 @@ void displayAddChar(char theChar) {
 	LATB=~alphabet_3x5[alphIdx][2];
 	Delay10KTCYx(20);
 	*/
-	writeEEPROM(curAddress, (int) alphabet_3x5[alphIdx][0]);
-	writeEEPROM(curAddress, (int) alphabet_3x5[alphIdx][1]);
-	writeEEPROM(curAddress, (int) alphabet_3x5[alphIdx][2]);
+	writeEEPROM(curAddress, alphabet_3x5[alphIdx][0]);
+	curAddress++;
+	writeEEPROM(curAddress, alphabet_3x5[alphIdx][1]);
+	curAddress++;
+	writeEEPROM(curAddress, alphabet_3x5[alphIdx][2]);
+	curAddress++;
 	writeEEPROM(curAddress, 0b00000000); //space after letter
+	curAddress++;
+	
 	displayLength=displayLength+4;
 }
 
@@ -287,11 +295,11 @@ void writeEEPROM(unsigned char address, unsigned char databyte)
     EEADR = address;        // Load EEADR with address of location to write. 
     EECON1bits.WREN = 1;    // Enable writing 
      
-    INTCONbits.GIE = 0;     // Disable interrupts 
+    disableInterrupts();     // Disable interrupts 
     EECON2 = 0x55;          // Begin Write sequence
     EECON2 = 0xAA; 
     EECON1bits.WR = 1;      // Set WR bit to begin EEPROM write 
-    INTCONbits.GIE = 1;     // re-enable interrupts
+    enableInterrupts();     // re-enable interrupts
     while (EECON1bits.WR == 1) 
     {   // wait for write to complete.  
     	;
