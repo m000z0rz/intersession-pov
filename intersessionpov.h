@@ -4,9 +4,10 @@ void displayAddString(char theString[]);
 void displayAddChar(char theChar);
 void resetColumnTimer(void);
 
-int readEEPROM(int address);
-void writeEEPROM(int address, int value);
-
+//int readEEPROM(int address);
+//void writeEEPROM(int address, int value);
+unsigned char readEEPROM(unsigned char address);
+void writeEEPROM(unsigned char address, unsigned char databyte); 
 void disableInterrupts(void);
 void enableInterrupts(void);
 #endif

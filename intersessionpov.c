@@ -59,15 +59,8 @@ high_vector (void)
 {
   _asm GOTO tmr0interrupt _endasm
 }
-/*
-#pragma code low_vector_section=0x18
-void
-low_vector (void)
-{
-  _asm GOTO tmr2 _endasm
-}
-*/
 #pragma code
+
 
 /*
 volatile unsigned current_ad_value;
@@ -118,6 +111,37 @@ void main (void) {
 	TRISB = 0;
 	LATB = 0xFF;
 
+
+	/* Test for Delayxxxx Statements */
+	//while(1){
+	//	// Lights off
+	//	LATB = 0xFF;
+	//	//Delay
+	//	Delay10KTCYx(20);
+	//	//Lights On
+	//	LATB = 0x00;
+	//	//Delay
+	//	Delay10KTCYx(20);
+	//	
+	//
+	//}
+	
+	/* Test for EEPROM READ/WRITE */
+	//while(1){
+	//	//Lights off
+	//	LATB = 0xFF;
+	//	// Write to EEPROM MEMORY
+	//	writeEEPROM(10,0x55);
+	//	// Give it a moment
+	//	Delay100TCYx(10);
+	//	// Read the EEPROM Back to LATB (inverted)
+	//	LATB =~readEEPROM(10);
+	//	// Give it a long moment
+	//	Delay10KTCYx(10);
+	//}
+
+
+
 	//setup
 	displayAddString(displayer);
 	columnDelay=25; //can also adjust TS0 prescaler
@@ -133,19 +157,9 @@ void main (void) {
 
 	curAddress=0;
 
-	/* Test for Delayxxxx Statements */
-	//while(1){
-	//	// Lights off
-	//	LATB = 0xFF;
-	//	//Delay
-	//	Delay10KTCYx(20);
-	//	//Lights On
-	//	LATB = 0x00;
-	//	//Delay
-	//	Delay10KTCYx(20);
-	//	
-	//
-	//}
+
+	
+	
 	
 
 
@@ -275,7 +289,48 @@ void main_old (void) {
 	}
 }
 
-int readEEPROM(int address) {
+
+unsigned char readEEPROM(unsigned char address) 
+{ // reads and returns the EEPROM byte value at the address given 
+  // given in "address". 
+    EECON1bits.EEPGD = 0;   // Set to access EEPROM memory 
+    EECON1bits.CFGS = 0;    // Do not access Config registers 
+    EEADR = address;        // Load EEADR with address of location to write. 
+    // execute the read 
+    EECON1bits.RD = 1;      // Set the RD bit to execute the EEPROM read 
+    // The value read is ready the next instruction cycle in EEDATA.  No wait is 
+    // needed. 
+    
+    return EEDATA;
+}   
+
+void writeEEPROM(unsigned char address, unsigned char databyte) 
+{ // writes the "databyte" value to EEPROM at the address given 
+  // location in "address". 
+    EECON1bits.EEPGD = 0;   // Set to access EEPROM memory 
+    EECON1bits.CFGS = 0;    // Do not access Config registers 
+    EEDATA = databyte;      // Load EEDATA with byte to be written 
+    EEADR = address;        // Load EEADR with address of location to write. 
+    EECON1bits.WREN = 1;    // Enable writing 
+     
+    INTCONbits.GIE = 0;     // Disable interrupts 
+    EECON2 = 0x55;          // Begin Write sequence
+    EECON2 = 0xAA; 
+    EECON1bits.WR = 1;      // Set WR bit to begin EEPROM write 
+    INTCONbits.GIE = 1;     // re-enable interrupts
+    while (EECON1bits.WR == 1) 
+    {   // wait for write to complete.  
+    	;
+    }
+    EECON1bits.WREN = 0;    // Disable writing as a precaution. 
+}
+
+
+
+
+
+
+int readEEPROM_old(int address) {
 	// *** enable/disable interrupts
 	if(direction==0) curAddress=address++; else curAddress=address--;
 	EECON1bits.EEPGD = 0;  /* READ step #1 */
@@ -285,7 +340,7 @@ int readEEPROM(int address) {
 	return EEDATA;    /* READ step #4 */
 }
 
-void writeEEPROM(int address, int value) {
+void writeEEPROM_old(int address, int value) {
 	// *** enable/disable interrupts	
 	EECON1bits.EEPGD = 0;  /* WRITE step #1 */
 	EECON1bits.CFGS = 0; //added
