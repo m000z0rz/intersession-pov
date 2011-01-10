@@ -118,10 +118,7 @@ void main (void) {
 	TRISB = 0;
 	LATB = 0xFF;
 
-	//LATB = 0x00;
-
 	//setup
-	//displayAddString("hello");
 	displayAddString(displayer);
 	columnDelay=25; //can also adjust TS0 prescaler
 
@@ -135,6 +132,22 @@ void main (void) {
 	resetColumnTimer();
 
 	curAddress=0;
+
+	/* Test for Delayxxxx Statements */
+	//while(1){
+	//	// Lights off
+	//	LATB = 0xFF;
+	//	//Delay
+	//	Delay10KTCYx(20);
+	//	//Lights On
+	//	LATB = 0x00;
+	//	//Delay
+	//	Delay10KTCYx(20);
+	//	
+	//
+	//}
+	
+
 
 	while (1) {
 		//readVal=readEEPROM(curAddress);
