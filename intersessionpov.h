@@ -9,4 +9,6 @@ void writeEEPROM(int address, int value);
 
 void disableInterrupts(void);
 void enableInterrupts(void);
+
+void blinken(void);
 #endif

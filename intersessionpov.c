@@ -77,9 +77,9 @@ volatile enum { DIR_LEFT = 0, DIR_RIGHT } direction;
 
 int curAddress=0;
 int columnDelay=25;
-int displayLength=0; //number of columns to display
+int displayLength=0;	//number of columns to display
 int reverseDirection=1; // repeat pattern in verse when we hit the end, or start at beginning? 1 for reverse
-int direction=0; //0 is forward through memory
+int direction=0;		//0 is forward through memory
 
 
 #pragma interrupt tmr0interrupt
@@ -115,17 +115,21 @@ void tmr0interrupt (void) {
 void main (void) {
 	int readVal;
 	char displayer[] = "hiz";
+
 	TRISB = 0;
 	LATB = 0xFF;
 
-	//LATB = 0x00;
+	blinken();
 
 	//setup
 	//displayAddString("hello");
+	blinken();
 	displayAddString(displayer);
+	blinken();
+	
 	columnDelay=25; //can also adjust TS0 prescaler
 
-	//INTCONbits.GIEH = 1;	//enable interrupts
+	enableInterrupts();
 
 	OpenTimer0(TIMER_INT_ON &
 				T0_8BIT & //T0_16BIT
@@ -135,15 +139,17 @@ void main (void) {
 	resetColumnTimer();
 
 	curAddress=0;
-
+	
 	while (1) {
+		blinken();
 		//readVal=readEEPROM(curAddress);
 		LATB=~readEEPROM(curAddress);
-		//LATB=~readVal);
+		blinken();
+		//LATB=~readVal;
 		Delay10KTCYx(20);
 		LATB=0b10101010;
 		Delay10KTCYx(20);
-		//if(curAddress==displayLength) break;
+		if(curAddress==displayLength) break;
 	}
 	
 	//LATB=0b10101010;
@@ -164,41 +170,17 @@ void resetColumnTimer(void) {
 void displayAddString(char theString[]) {
 	char* curChar;
 	curChar = theString;
-
-	LATB=0b00110011;
-	Delay10KTCYx(20);
-	LATB=0b11001100;
-	Delay10KTCYx(20);
 	
 	while(*curChar != '\0'){
-		/*
-		LATB=0b00110011;
-		Delay10KTCYx(20);
-		LATB=0b11001100;
-		Delay10KTCYx(20);
-		*/
+		//blinken();
 	    displayAddChar(*curChar);
 	    curChar++;
 	}
-	/*
-	int i;
-	// char* curChar;
-	// curChar = theString;
-	for(i=0; i++; i<sizeof(theString)) {
-		displayAddChar(theString[i]);
-	}
-	*/
 }
 
 void displayAddChar(char theChar) {
 	char alphIdx;
 	int value;
-	/*
-	int test1;
-	int test2;
-	test1 = (105 > 97);
-	test2 = (theChar > 'a');
-	*/
 	if ((theChar >= 'a') && (theChar <= 'z')) {
 		alphIdx=theChar-97;
 	} else {
@@ -298,4 +280,11 @@ void disableInterrupts(void) {
 
 void enableInterrupts(void) {
 	//INTCONbits.GIE=1;
+}
+
+void blinken(void) {
+	LATB=0b00110011;
+	Delay10KTCYx(20);
+	LATB=0b11001100;
+	Delay10KTCYx(20);
 }
