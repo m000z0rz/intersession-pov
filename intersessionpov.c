@@ -1,5 +1,11 @@
 #pragma config FOSC = INTIO67
 #pragma config WDTEN = OFF, LVP = OFF
+
+#define cycleLength 1000 / 6 //in ms
+// later, columnDelay will be set to cycleLength / numCols
+
+
+
 #include "p18f46K20.h"
 #include "intersessionpov.h"
 #include <delays.h>
@@ -69,8 +75,9 @@ volatile enum { DIR_LEFT = 0, DIR_RIGHT } direction;
 */
 
 unsigned char curAddress=0;
-int columnDelay=25;
-int displayLength=0;	//number of columns to display
+int columnDelay;
+int timerResetVal;
+int numCols=0;	//number of columns to display
 int reverseDirection=1; // repeat pattern in verse when we hit the end, or start at beginning? 1 for reverse
 int direction=0;		//0 is forward through memory
 
@@ -80,27 +87,14 @@ int direction=0;		//0 is forward through memory
 void tmr0interrupt (void) {
 	/* clear the timer interrupt flag */
     INTCONbits.TMR0IF = 0;
+	disableInterrupts();
 
-	//LATB=0b00001111;
-	//update column
-	LATB=~readEEPROM(curAddress);
+	advanceLEDs();
+	//Delay10KTCYx(20);
 	
-	//check boundary conditions - start over, or play pattern backwards
-	if((curAddress==0)||(curAddress==displayLength)) {
-		if(reverseDirection) {
-			if(direction==0) {
-				curAddress=displayLength; //curAddress--;
-			} else {
-				curAddress=0; //curAddress++;
-			}
-			direction=~direction;
-		} else {
-			curAddress=0;
-		}
-	}
-
 	//reset timer
 	resetColumnTimer();
+	enableInterrupts();
 }
 
 
@@ -108,10 +102,62 @@ void tmr0interrupt (void) {
 void main (void) {
 	int readVal;
 	char displayString[] = "hiz";
-
+	
 	TRISB = 0;
 	LATB = 0xFF;
 
+	displayAddString(displayString);
+	
+	columnDelay = cycleLength / numCols
+	columnDelay = 25; //can also adjust TS0 prescaler
+	timerResetVal = columnDelay
+
+	enableInterrupts();
+
+	OpenTimer0(TIMER_INT_ON &
+				T0_8BIT & //T0_16BIT
+				T0_SOURCE_INT &
+				T0_PS_1_2); //T0_PS_1_2,4,16,...256 --use 1:256 prescaler bbaker
+
+	resetColumnTimer();
+
+	curAddress=0;
+	
+	//loop;
+	while (1) {
+		//advanceLEDs();
+		//Delay10KTCYx(20);
+
+		// this is the song that never ends,
+		// yes it goes on and on my friends
+		// some people
+		// staaaaaarted singin' it not knowin' what it was
+		// and they'll continue singin it forever just because
+	}
+}
+
+void advanceLEDs(void) {
+	//update column
+	LATB=~readEEPROM(curAddress);	
+	
+	//check boundary conditions - start over, or play pattern backwards
+	if(reverseDirection) {
+		if(curAddress==0) {
+			direction=0;
+		} else if (curAddress==numCols-1) {
+			direction=-1;
+		}
+		if(direction==0) curAddress++; else curAddress--;
+	} else {
+		if(curAddress==numCols-1) {
+			curAddress=0;
+		} else {
+			curAddress++;
+		}
+	}
+}
+
+void testLoops(void) {
 	/* Test for Delayxxxx Statements */
 	//while(1){
 	//	// Lights off
@@ -139,50 +185,6 @@ void main (void) {
 	//	// Give it a long moment
 	//	Delay10KTCYx(10);
 	//}
-
-
-	disableInterrupts();
-	//setup
-	blinken();
-	displayAddString(displayString);
-	blinken();
-	
-	columnDelay=25; //can also adjust TS0 prescaler
-
-	enableInterrupts();
-
-	OpenTimer0(TIMER_INT_ON &
-				T0_8BIT & //T0_16BIT
-				T0_SOURCE_INT &
-				T0_PS_1_2); //T0_PS_1_2,4,16,...256 --use 1:256 prescaler bbaker
-
-	resetColumnTimer();
-
-	curAddress=0;
-
-	blinken();
-	while (1) {
-		//blinken();
-		//readVal=readEEPROM(curAddress);
-		LATB=~readEEPROM(curAddress);
-		curAddress++;
-		//blinken();
-		//LATB=~readVal;
-		Delay10KTCYx(20);
-		LATB=0b10101010;
-		Delay10KTCYx(20);
-		if(curAddress==displayLength) break;
-	}
-	
-	//LATB=0b10101010;
-	//loop
-	while (1) {
-		// this is the song that never ends,
-		// yes it goes on and on my friends
-		// some people
-		// staaaaaarted singin' it not knowin' what it was
-		// and they'll continue singin it forever just because
-	}
 }
 
 void resetColumnTimer(void) {
@@ -226,7 +228,7 @@ void displayAddChar(char theChar) {
 	writeEEPROM(curAddress, 0b00000000); //space after letter
 	curAddress++;
 	
-	displayLength=displayLength+4;
+	numCols=numCols+4;
 }
 
 void main_old (void) {
@@ -347,7 +349,7 @@ void disableInterrupts(void) {
 }
 
 void enableInterrupts(void) {
-	//INTCONbits.GIE=1;
+	INTCONbits.GIE=1;
 }
 
 void blinken(void) {

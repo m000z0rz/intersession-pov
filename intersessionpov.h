@@ -12,4 +12,5 @@ void disableInterrupts(void);
 void enableInterrupts(void);
 
 void blinken(void);
+void advanceLEDs(void);
 #endif
