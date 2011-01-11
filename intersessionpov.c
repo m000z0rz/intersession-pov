@@ -7,6 +7,7 @@
 	//  * 4000000		// 4 million instructions / 1 second
 	//  * 1 / 1000		// 1 second / 1000 ms = 62.5
 						// * colDelay in ms gives the timer reload value
+						// colDelay is calculated as cycleLength / numCols
 
 
 #include "p18f46K20.h"
@@ -85,7 +86,7 @@ int timerResetVal;  // the number of timer counts between columns.
 					//  used in resetColumnTimer, and calculated
 					//  from columnDelay and the conv factor defined above to timer ticks 
 int numCols=0;	//number of columns to display
-int reverseDirection=1; // repeat pattern in verse when we hit the end, or start at beginning? 1 for reverse
+int reverseDirection=0; // repeat pattern in verse when we hit the end, or start at beginning? 1 for reverse
 int direction=0;		//0 is forward through memory
 
 
@@ -116,7 +117,7 @@ void main (void) {
 	displayAddString(displayString);
 	
 	columnDelay = cycleLength / numCols;
-	timerResetVal = conversion_columDelayToTimerResetVal * columnDelay;
+	timerResetVal = 65536 - (conversion_columDelayToTimerResetVal * columnDelay);
 
 	enableInterrupts();
 
@@ -194,7 +195,7 @@ void testLoops(void) {
 }
 
 void resetColumnTimer(void) {
-	WriteTimer0(65025-timerResetVal);
+	WriteTimer0(timerResetVal);
 }
 
 void displayAddString(char theString[]) {
