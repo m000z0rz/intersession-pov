@@ -2,8 +2,11 @@
 #pragma config WDTEN = OFF, LVP = OFF
 
 #define cycleLength 1000 / 6 //in ms
-// later, columnDelay will be set to cycleLength / numCols
-
+#define conversion_columDelayToTimerResetVal  62.5
+	// 1 / 64			// 1 timer val / 64 instructions (due to prescaler)
+	//  * 4000000		// 4 million instructions / 1 second
+	//  * 1 / 1000		// 1 second / 1000 ms = 62.5
+						// * colDelay in ms gives the timer reload value
 
 
 #include "p18f46K20.h"
@@ -75,8 +78,12 @@ volatile enum { DIR_LEFT = 0, DIR_RIGHT } direction;
 */
 
 unsigned char curAddress=0;
-int columnDelay;
-int timerResetVal;
+int columnDelay;	// the number to milliseconds between columns.
+					//  calculated from cycleLength (defined above) and the number
+					//  of columns, which needs to be set by the program.
+int timerResetVal;  // the number of timer counts between columns.
+					//  used in resetColumnTimer, and calculated
+					//  from columnDelay and the conv factor defined above to timer ticks 
 int numCols=0;	//number of columns to display
 int reverseDirection=1; // repeat pattern in verse when we hit the end, or start at beginning? 1 for reverse
 int direction=0;		//0 is forward through memory
@@ -108,16 +115,15 @@ void main (void) {
 
 	displayAddString(displayString);
 	
-	columnDelay = cycleLength / numCols
-	columnDelay = 25; //can also adjust TS0 prescaler
-	timerResetVal = columnDelay
+	columnDelay = cycleLength / numCols;
+	timerResetVal = conversion_columDelayToTimerResetVal * columnDelay;
 
 	enableInterrupts();
 
 	OpenTimer0(TIMER_INT_ON &
-				T0_8BIT & //T0_16BIT
+				T0_16BIT & //T0_16BIT
 				T0_SOURCE_INT &
-				T0_PS_1_2); //T0_PS_1_2,4,16,...256 --use 1:256 prescaler bbaker
+				T0_PS_1_64); //T0_PS_1_2,4,16,...256 --use 1:256 prescaler bbaker
 
 	resetColumnTimer();
 
@@ -188,7 +194,7 @@ void testLoops(void) {
 }
 
 void resetColumnTimer(void) {
-	WriteTimer0(255-columnDelay);
+	WriteTimer0(65025-timerResetVal);
 }
 
 void displayAddString(char theString[]) {
